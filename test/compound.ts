@@ -60,7 +60,5 @@ describe("Compound APY", function () {
 
         let balance = await this.USDC.balanceOf(this.deployer.address);
         console.log("DEPLOYER USDC after redeem balance=", ethers.utils.formatUnits(balance, 6));
-
-
     });
 });
