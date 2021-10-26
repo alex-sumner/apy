@@ -38,27 +38,45 @@ describe("Compound APY", function () {
       await tx.wait();
 
       //INTEGRITY CHECK
-      let balance = await this.USDC.balanceOf(this.deployer.address);
-      expect(balance).to.be.not.eq(ethers.constants.Zero);
-      console.log("DEPLOYER USDC balance=", ethers.utils.formatUnits(balance, 6));
+      this.startBalance = await this.USDC.balanceOf(this.deployer.address);
+      expect(this.startBalance).to.be.not.eq(ethers.constants.Zero);
+      console.log("DEPLOYER USDC balance=", ethers.utils.formatUnits(this.startBalance, 6));
     });
 
-    it("supply/redeem calc APY", async function () {
+    it("estimate USDC supply APY", async function () {
         let tx = await this.USDC.connect(this.deployer).approve(this.cUSDC.address, SUPPLY_AMOUNT);
         await tx.wait();
 
         tx = await this.cUSDC.connect(this.deployer).mint(SUPPLY_AMOUNT);
         await tx.wait();
+        
+        let block = await ethers.provider.getBlock(tx.blockNumber);
+        let startTimestamp = block.timestamp;
 
         let ctokenBalance = await this.cUSDC.balanceOf(this.deployer.address);
         expect(ctokenBalance).to.be.not.eq(ethers.constants.Zero);
 
         console.log("cTOKEN balance=", ethers.utils.formatUnits(ctokenBalance, CUSDC_DECIMALS));
 
+        console.log("...waiting for 30 seconds");
+        await delay(30000);
+        console.log("...redeem start");
+
         tx = await this.cUSDC.redeem(ctokenBalance);
         await tx.wait();
 
-        let balance = await this.USDC.balanceOf(this.deployer.address);
-        console.log("DEPLOYER USDC after redeem balance=", ethers.utils.formatUnits(balance, 6));
+        block = await ethers.provider.getBlock(tx.blockNumber);
+        let endTimestamp = block.timestamp;
+
+
+        let diff = endTimestamp - startTimestamp;
+        let periods = (365*24*60*60) / diff;
+
+        let endBalance = await this.USDC.balanceOf(this.deployer.address);
+        console.log("DEPLOYER USDC after redeem balance=", ethers.utils.formatUnits(endBalance, 6));
+
+        let profit = endBalance - this.startBalance;
+        console.log("PROFIT earned" + profit.toString() + " passed periods=" + periods);
+
     });
 });
