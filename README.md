@@ -16,3 +16,9 @@ yarn
 . .env
 npx hardhat test
 ```
+
+To test exact script
+
+```shell
+npx hardhat test ./test/<script_name.ts>
+```
