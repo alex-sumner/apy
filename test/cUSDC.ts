@@ -9,15 +9,40 @@ const USDC_MAINNET = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
 const USDC_contract = "0x0a59649758aa4d66e25f08dd01271e891fe52199";
 
 const SUPPLY_AMOUNT = ethers.utils.parseUnits("100.0", 6);
+
 let startblock: number;
+let targetBlock: number;
+
+let latestKnownBlockNumber = -1;
+let blockTime = 13150;
 
 async function generate_Account() {
   const [signers] = await ethers.getSigners();
   return signers
 }
 
+
+// Our function that will triggered for every block
+async function processBlock(blockNumber:number) {
+    console.log("We process block: " + blockNumber)
+    latestKnownBlockNumber = blockNumber;
+}
+
+// This function is called every blockTime, check the current block number and order the processing of the new block(s)
+async function checkCurrentBlock() {
+    const currentBlockNumber = await ethers.provider.getBlockNumber()
+    while (latestKnownBlockNumber == -1 || currentBlockNumber > latestKnownBlockNumber) {
+        await processBlock(latestKnownBlockNumber == -1 ? currentBlockNumber : latestKnownBlockNumber + 1);
+        if (currentBlockNumber === targetBlock) {
+            return;
+          }
+    }
+    setTimeout(checkCurrentBlock, blockTime);
+}
+
+
 describe("Test", function () {
-  it("Transfer", async () => {
+  it("1. Supply. Transfer underlying USDC.", async () => {
     
     const owner = await generate_Account();
 
@@ -39,7 +64,7 @@ describe("Test", function () {
     expect(await USDC.balanceOf(owner.address)).to.equal(SUPPLY_AMOUNT);
   });
 
-  it("Mint", async () => {
+  it("1. Supply. Mint cUSDC.", async () => {
     
     const owner = await generate_Account();
 
@@ -60,17 +85,25 @@ describe("Test", function () {
     expect(await cUSDC.balanceOf(owner.address)).to.be.within(50000000, 500000000000);
     console.log("New cUSDC balance:",ethers.utils.formatUnits(await cUSDC.balanceOf(owner.address), 8));
 
-    //tx = await cUSDC.redeem(await cUSDC.balanceOf(owner.address));
-    //await tx.wait();
-
   });
-
-  it("APY", async () => {
+  it("2. Track the price of cUSDC", async () => {
     
     const owner = await generate_Account();
 
     const cUSDC = new ethers.Contract(Contracts.cUSDC, compAbi["cErc20Delegate"], owner);
-    //const USDC = new ethers.Contract(USDC_MAINNET, ERC20, owner);
+
+    checkCurrentBlock()
+    let tx = await cUSDC.redeem(await cUSDC.balanceOf(owner.address));
+    await tx.wait();
+
+  });
+
+
+  it("3. Provide the APY - cumulative yearly rate.", async () => {
+    
+    const owner = await generate_Account();
+
+    const cUSDC = new ethers.Contract(Contracts.cUSDC, compAbi["cErc20Delegate"], owner);
 
     const ethMantissa = 1e18;
     const blocksPerDay = 6570; // 13.15 seconds per block
@@ -78,12 +111,6 @@ describe("Test", function () {
     const supplyRatePerBlock = await cUSDC.supplyRatePerBlock();
     
     const supplyApy = (((Math.pow((supplyRatePerBlock / ethMantissa * blocksPerDay) + 1, daysPerYear))) - 1) * 100;
-    //console.log("Supply per block:", ethers.utils.formatUnits(await cUSDC.supplyRatePerBlock(), 8));
-    console.log(supplyApy);
-    let tx = await cUSDC.redeem(await cUSDC.balanceOf(owner.address));
-    await tx.wait();
-
-    console.log(await owner.getTransactionCount("pending"));
-
+    console.log(`Supply APY for ETH ${supplyApy} %`);
   });
 });
