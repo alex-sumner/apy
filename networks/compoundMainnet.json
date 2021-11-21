@@ -1,6 +1,7 @@
 {
     "Contracts": {
       "AAVE": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+      "AaveLendingPoolAddressesProvider": "0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5",    
       "cAAVEDelegate": "0xa035b9e130f2b1aedc733eefb1c67ba4c503491f",
       "cAAVE": "0xe65cdb6479bac1e22340e4e755fae7e509ecd06c",
       "SUSHI": "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2",
