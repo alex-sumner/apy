@@ -21,7 +21,6 @@ describe("Compound APY", function() {
     const USDC_AMOUNT = 100;
     const ONE_USDC = ethers.utils.parseUnits("1.0", 6);
     const SUPPLY_AMOUNT = ONE_USDC.mul(USDC_AMOUNT);
-    const UINT256_MAX = ethers.BigNumber.from("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
     // impersonate Maker to give us $100
     before(async function() {
@@ -101,7 +100,7 @@ describe("Compound APY", function() {
         await delay(30000);
         console.log("...redeem start");
 
-        tx = await this.aaveLendingPool.withdraw(this.USDC.address, UINT256_MAX, this.deployer.address);
+        tx = await this.aaveLendingPool.withdraw(this.USDC.address, ethers.constants.MaxUint256, this.deployer.address);
         await tx.wait();
 
         block = await ethers.provider.getBlock(tx.blockNumber);
