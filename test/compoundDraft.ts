@@ -40,6 +40,7 @@ describe("Compound APY", function() {
 
         //INTEGRITY CHECK
         this.startBalance = await this.USDC.balanceOf(this.deployer.address);
+        console.log(`startBalance type ${typeof (this.startBalance)}`);
         expect(this.startBalance).to.be.not.eq(ethers.constants.Zero);
         console.log("DEPLOYER USDC balance=", ethers.utils.formatUnits(this.startBalance, 6));
     });
@@ -78,43 +79,65 @@ describe("Compound APY", function() {
         console.log("DEPLOYER USDC after redeem balance=", ethers.utils.formatUnits(endBalance, 6));
 
         let profit = endBalance - this.startBalance;
-        console.log("PROFIT earned=" + profit.toString() + " passed periods=" + periods);
+        console.log("COMP PROFIT earned=" + profit.toString() + " passed periods=" + periods);
 
     });
 
     it("estimate USDC supply APY, Aave", async function() {
         const addressProvider = new ethers.Contract(Contracts.AaveLendingPoolAddressesProvider, aaveAbi["AaveLendingPoolAddressesProvider"], this.deployer);
         const lendingPoolAddress = await addressProvider.getLendingPool();
-        this.aaveLendingPool = new ethers.Contract(lendingPoolAddress, aaveLendingPoolAbi["abi"], this.deployer);
+        const aaveLendingPool = new ethers.Contract(lendingPoolAddress, aaveLendingPoolAbi["abi"], this.deployer);
 
-        let tx = await this.USDC.connect(this.deployer).approve(this.aaveLendingPool.address, SUPPLY_AMOUNT);
+        // Aave oracle always gives a price of zero?
+        // const priceOracleAddress = await addressProvider.getPriceOracle();
+        // const priceOracle = new ethers.Contract(priceOracleAddress, aaveAbi["PriceOracle"], this.deployer);
+
+        const chainLinkAaveUSD = new ethers.Contract(Contracts.ChainLinkAaveUSD, aaveAbi["ChainLinkAaveUSD"], this.deployer);
+
+        const aaveIncentivesController = new ethers.Contract(Contracts.AaveIncentivesController, aaveAbi["IncentivesController"], this.deployer);
+
+        const startRewards = await aaveIncentivesController.getRewardsBalance([Contracts.aaveAToken], this.deployer.address);
+
+        let tx = await this.USDC.connect(this.deployer).approve(aaveLendingPool.address, SUPPLY_AMOUNT);
         await tx.wait();
 
-        tx = await this.aaveLendingPool.deposit(this.USDC.address, SUPPLY_AMOUNT, this.deployer.address, 0);
+        tx = await aaveLendingPool.deposit(this.USDC.address, SUPPLY_AMOUNT, this.deployer.address, 0);
         await tx.wait();
 
         let block = await ethers.provider.getBlock(tx.blockNumber);
-        let startTimestamp = block.timestamp;
+        const startTimestamp = block.timestamp;
 
         console.log("...waiting for 30 seconds");
         await delay(30000);
         console.log("...redeem start");
 
-        tx = await this.aaveLendingPool.withdraw(this.USDC.address, ethers.constants.MaxUint256, this.deployer.address);
+        tx = await aaveLendingPool.withdraw(this.USDC.address, ethers.constants.MaxUint256, this.deployer.address);
         await tx.wait();
 
         block = await ethers.provider.getBlock(tx.blockNumber);
-        let endTimestamp = block.timestamp;
+        const endTimestamp = block.timestamp;
 
 
-        let diff = endTimestamp - startTimestamp;
-        let periods = (365 * 24 * 60 * 60) / diff;
+        const diff = endTimestamp - startTimestamp;
+        const periods = (365 * 24 * 60 * 60) / diff;
 
-        let endBalance = await this.USDC.balanceOf(this.deployer.address);
-        console.log("DEPLOYER USDC after redeem balance=", ethers.utils.formatUnits(endBalance, 6));
+        const endBalance = await this.USDC.balanceOf(this.deployer.address);
+        const profitWithoutAaveReward = endBalance.sub(this.startBalance).mul(ethers.BigNumber.from(10).pow(12));
 
-        let profit = endBalance - this.startBalance;
-        console.log("PROFIT earned=" + profit.toString() + " passed periods=" + periods);
+        const endRewards = await aaveIncentivesController.getRewardsBalance([Contracts.aaveAToken], this.deployer.address);
+
+        // Aave oracle always gives a price of zero?
+        // const aaveOraclePrice = await priceOracle.getAssetPrice(Contracts.aaveAToken);
+        // console.log("Aave oracle price: ", aaveOraclePrice);
+        const aavePriceData = await chainLinkAaveUSD.latestRoundData();
+        const aavePrice = aavePriceData.answer;
+
+        const reward = endRewards.sub(startRewards);
+        const aaveReward = reward.mul(aavePrice).div(ethers.BigNumber.from(10).pow(8));
+
+        const profit = profitWithoutAaveReward.add(aaveReward);
+        console.log(`profitWithoutAaveReward * 10^6: ${ethers.utils.formatUnits(profitWithoutAaveReward, 12)}, aaveReward * 10^6: ${ethers.utils.formatUnits(aaveReward, 12)}`);
+        console.log("AAVE PROFIT earned=" + ethers.utils.formatUnits(profit, 18) + ", passed periods=" + periods);
 
     });
 });
