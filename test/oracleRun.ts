@@ -1,4 +1,3 @@
-import { expect } from "chai";
 import { ethers } from "hardhat";
 import { writeFile } from "fs";
 import { Contracts } from "../networks/compoundMainnet.json";
@@ -10,11 +9,8 @@ const aaveAbi = require("../external/aave.json");
 const ERC20 = require("../external/erc20.json");
 const aaveLendingPoolAbi = require('../external/aaveLendingPool.json');
 
-const COMP_API = "https://api.compound.finance/api/v2/ctoken";
 const USDC_MAINNET = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
 const STRIPS_TEST = "0x21d0fd7c54e4c1A453906A3BcB7598aeE827b292";
-
-const CUSDC_DECIMALS = 8;
 
 describe("Compound APY", function() {
 
