@@ -1,0 +1,22 @@
+[
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "holder",
+        "type": "address"
+      },
+      {
+        "internalType": "contract CToken[]",
+        "name": "cTokens",
+        "type": "address[]"
+      }
+    ],
+    "name": "claimComp",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]
