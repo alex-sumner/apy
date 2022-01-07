@@ -1,0 +1,20 @@
+comp steps
+
+contracts are USDC, cUSDC, compContract, comptroller
+
+get USDC balance before
+comptroller.claimComp
+get cUSDC balance and cUSDC.redeem it
+get USDC balance after
+get compContract balance and ChainLink comp price
+
+
+aave steps
+
+contracts are USDC, aaveLendingPoolAddressProvider, aaveLendingPool, aaveIncentivesController
+
+get USDC balance before
+withdraw all from lending pool
+get USDC balance after
+get reward balance with aaveIncentivesController.getRewardsBalance and ChainLink Aave/USD price
+
